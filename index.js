@@ -23,50 +23,55 @@ async function run() {
             const cursor = serviceCollection.find(query);
             const services = await cursor.toArray();
             res.send(services);
-        })
+        });
 
-        // !!!! Warring :
-        // this is not the proper way to query.
-        // after learning more about mongodb . use aggregate lookup, pipeline, match, group
-        app.get('/available', async(req, res)=>{
+        // Warning: This is not the proper way to query multiple collection. 
+        // After learning more about mongodb. use aggregate, lookup, pipeline, match, group
+        app.get('/available', async (req, res) => {
             const date = req.query.date;
 
-            // setp 1: get all services
+            // step 1:  get all services
             const services = await serviceCollection.find().toArray();
 
-            // step 2: get the booking of the day
-            const query = {date: date};
+            // step 2: get the booking of that day. output: [{}, {}, {}, {}, {}, {}]
+            const query = { date: date };
             const bookings = await bookingCollection.find(query).toArray();
 
             // step 3: for each service
-            services.forEach(service=>{
-                // step 4: find booking for that services. output: [{}, {}, {}, {}]
-                const serviceBookings = bookings.filter(book=> book.treatment === service.name);
-
-                // step 5: select slots for the service bookings: ['', '','','','']
-                const bookedSlots = serviceBookings.map(book=> book.slot);
-
+            services.forEach(service => {
+                // step 4: find bookings for that service. output: [{}, {}, {}, {}]
+                const serviceBookings = bookings.filter(book => book.treatment === service.name);
+                // step 5: select slots for the service Bookings: ['', '', '', '']
+                const bookedSlots = serviceBookings.map(book => book.slot);
                 // step 6: select those slots that are not in bookedSlots
                 const available = service.slots.filter(slot => !bookedSlots.includes(slot));
-
-                // step 7: set available to slots to make it easier
+                //step 7: set available to slots to make it easier 
                 service.slots = available;
-
-            })
+            });
             res.send(services);
         })
 
 
         /**
-        * API Naming Convention
-        * app.get('/booking') // get all booking in this collection. or get more than one or by filter
-        * app.get('/booking')  // get a specific booking
-        * app.post('/booking') // add a new booking
-        * app.patch('/booking/:id') // 
-        * app.delete('/booking/:id') // 
+         * API Naming Convention
+         * app.get('/booking') // get all bookings in this collection. or get more than one or by filter
+         * app.get('/booking/:id') // get a specific booking 
+         * app.post('/booking') // add a new booking
+         * app.patch('/booking/:id) //
+         * app.delete('/booking/:id) //
         */
 
-        // add new bokking 
+        app.get('/booking', async (req, res) => {
+            const patient = req.query.patient;
+            const query = { patient: patient };
+            const bookings = await bookingCollection.find(query).toArray();
+            res.send(bookings);
+            // const query = {};
+            // const cursor = bookingCollection.find(query);
+            // const bookings = await cursor.toArray();
+            // res.send(bookings);
+        })
+
         app.post('/booking', async (req, res) => {
             const booking = req.body;
             const query = { treatment: booking.treatment, date: booking.date, patient: booking.patient }
@@ -78,14 +83,12 @@ async function run() {
             return res.send({ success: true, result });
         })
 
-    
-
-
     }
     finally {
 
     }
 }
+
 run().catch(console.dir);
 
 
