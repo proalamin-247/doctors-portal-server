@@ -37,6 +37,14 @@ async function run() {
         const bookingCollection = client.db('doctors_portal').collection('bookings');
         const userCollection = client.db('doctors_portal').collection('users');
 
+
+        // get users
+        app.get('/user',veryfyJWT, async(req, res)=>{
+            const users = await userCollection.find().toArray();
+            res.send(users);
+        })
+
+        // send users database
         app.put('/user/:email', async (req, res) => {
             const email = req.params.email;
             const user = req.body;
@@ -51,6 +59,27 @@ async function run() {
 
         })
 
+        // user admin api
+        app.put('/user/admin/:email', veryfyJWT, async (req, res) => {
+            const email = req.params.email;
+            const requester= req.decoded.email;
+            const requesterAccount= await userCollection.findOne({email: requester});
+            if(requesterAccount.role === 'admin'){
+                const filter = { email: email };
+                const updateDoc = {
+                    $set: { role: 'admin' },
+                };
+                const result = await userCollection.updateOne(filter, updateDoc);
+                res.send({ result });
+            }
+            else{
+                res.status(403).send({message: 'forbidden'});
+            }
+            
+
+        })
+
+        // get all services
         app.get('/service', async (req, res) => {
             const query = {};
             const cursor = serviceCollection.find(query);
